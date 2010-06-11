@@ -76,29 +76,6 @@ class Apache(object):
         stats['name'] = self.name
         return stats
 
-    def print_stats(self):
-        if not self.running:
-            return
-
-        print ("% -33s"
-               "% -6s"
-               "% -6s"
-               "% -6s"
-               "% -6s"
-               "% -4s"
-               "% -4s"
-               "% -4s") % ('NAME', 'CHLD', 'CPU',
-                                 'MEM', "R/s", "WK", "IL", "OP")
-
-        print ("%(name) -32s"
-               "%(children) -6d"
-               "%(cpu) -6.2f"
-               "%(mem) -6.2f"
-               "%(ReqPerSec) -6.2f"
-               "%(Working) -4d"
-               "%(Idle) -4d"
-               "%(Open) -4d") % dict({'name': s.name}, **s.stats())
-
     @property
     def running(self):
         return self.pid is not None
@@ -111,6 +88,7 @@ class Apache(object):
             return True
         else:
             return False
+
 
 def print_report(apaches, sort='name'):
     print ("% -33s"
@@ -135,6 +113,7 @@ def print_report(apaches, sort='name'):
                "%(Working) -4d"
                "%(Idle) -4d"
                "%(Open) -4d") % stat
+
 
 def all_apaches():
     info_dir = "/etc/apaches-info"

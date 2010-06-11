@@ -122,6 +122,7 @@ def all_apaches():
         apaches.append(Apache(*open(f).read().strip().split(':')))
     return apaches
 
+
 if __name__ == '__main__':
     a = all_apaches()
     print_report(a)

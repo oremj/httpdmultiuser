@@ -7,6 +7,7 @@ from urllib2 import urlopen, URLError
 float_format = lambda a: "%.2f" % a
 int_format = lambda a: "%d" % a
 
+
 class Apache(object):
     def __init__(self, name, front_ports, back_ports):
         self.name = name
@@ -107,7 +108,7 @@ def print_report(apaches, sort='name'):
               "%(Working) -4s"
               "%(Idle) -4s"
               "%(Open) -4s")
-    
+
     print format % {
         'name': 'NAME',
         'children': 'CHLD',
@@ -120,8 +121,8 @@ def print_report(apaches, sort='name'):
     }
 
     stats = [a.stats() for a in apaches]
-    stats.sort(cmp=lambda a,b: cmp(a.get(sort), b.get(sort)))
-    
+    stats.sort(cmp=lambda a, b: cmp(a.get(sort), b.get(sort)))
+
     for stat in stats:
         print format % defaultdict(lambda: 'off', stat)
 

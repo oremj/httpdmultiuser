@@ -10,7 +10,7 @@ if __name__ == '__main__':
     usage = "usage: %%prog {%s} args" % "|".join(commands)
     parser = OptionParser(usage=usage)
     options, args = parser.parse_args(args=sys.argv[1:2])
-    
+
     try:
         cmd = args[0]
     except IndexError:

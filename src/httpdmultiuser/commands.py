@@ -5,9 +5,12 @@ from . import apache
 
 
 commands = {}
+
+
 def command(options=None, usage=''):
     if not options:
         options = []
+
     def wrapper(f):
         parser = OptionParser(usage=usage % {'f': f.__name__})
         for o in options:
@@ -22,13 +25,14 @@ def command(options=None, usage=''):
         return inner_wrapper
 
     return wrapper
-    
+
 
 @command(usage='usage: %%prog %(f)s {all|appname appname}')
 def restart(opts, *args):
     for a in apache.all_apaches():
         if 'all' in args or a.name in args:
             a.restart()
+            print "Restarted: %s" % a.name
 
 
 @command([make_option("-s", "--sort", default='name')])
@@ -41,8 +45,10 @@ def reload(opts, *args):
     for a in apache.all_apaches():
         if 'all' in args or a.name in args:
             a.restart()
+            print "Reloaded: %s" % a.name
+
 
 @command()
 def show_commands(*args):
-    for c in commands:
+    for c in sorted(commands):
         print c

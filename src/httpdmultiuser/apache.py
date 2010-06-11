@@ -1,7 +1,11 @@
+from collections import defaultdict
 import os
 from subprocess import PIPE, Popen
-from urllib2 import urlopen
+from urllib2 import urlopen, URLError
 
+
+float_format = lambda a: "%.2f" % a
+int_format = lambda a: "%d" % a
 
 class Apache(object):
     def __init__(self, name, front_ports, back_ports):
@@ -28,6 +32,9 @@ class Apache(object):
         self._run_svc_cmd('reload')
 
     def _ps_stats(self):
+        if not self.running:
+            return {}
+
         p = Popen(['/bin/ps', 'axo', 'user,pid,ppid,%cpu,%mem,command'],
                     stdout=PIPE)
         out = p.communicate()[0]
@@ -42,35 +49,36 @@ class Apache(object):
                 procs.append([cpu, mem])
 
         return {
-            'children': len(procs),
-            'cpu': sum(p[0] for p in procs),
-            'mem': sum(p[1] for p in procs),
+            'children': int_format(len(procs)),
+            'cpu': float(sum(p[0] for p in procs)),
+            'mem': float(sum(p[1] for p in procs)),
         }
 
     def _apache_stats(self):
-        interesting = ['BytesPerSec', 'ReqPerSec']
+        try:
+            u = urlopen("http://localhost:%s/server-status?auto"
+                            % self.back_ports[0])
+        except URLError:
+            return {}
+
         stats = {}
-        u = urlopen("http://localhost:%s/server-status?auto"
-                        % self.back_ports[0])
+        interesting = ['BytesPerSec', 'ReqPerSec']
         for l in u.readlines():
             type, value = l.split(":")
             if type in interesting:
-                stats[type] = float(value)
+                stats[type] = float_format(float(value))
             if type == 'Scoreboard':
                 scoreboard = {}
                 for c in value:
                     scoreboard[c] = scoreboard.get(c, 0) + 1
 
-        stats['Working'] = scoreboard.get('W', 0)
-        stats['Idle'] = scoreboard.get('_', 0)
-        stats['Open'] = scoreboard.get('.', 0)
+        stats['Working'] = int_format(scoreboard.get('W', 0))
+        stats['Idle'] = int_format(scoreboard.get('_', 0))
+        stats['Open'] = int_format(scoreboard.get('.', 0))
 
         return stats
 
     def stats(self):
-        if not self.running:
-            return
-
         stats = self._ps_stats()
         stats.update(self._apache_stats())
         stats['name'] = self.name
@@ -91,28 +99,31 @@ class Apache(object):
 
 
 def print_report(apaches, sort='name'):
-    print ("% -33s"
-           "% -6s"
-           "% -6s"
-           "% -6s"
-           "% -6s"
-           "% -4s"
-           "% -4s"
-           "% -4s") % ('NAME', 'CHLD', 'CPU',
-                             'MEM', "R/s", "WK", "IL", "OP")
+    format = ("%(name) -33s"
+              "%(children) -6s"
+              "%(cpu) -6s"
+              "%(mem) -6s"
+              "%(ReqPerSec) -6s"
+              "%(Working) -4s"
+              "%(Idle) -4s"
+              "%(Open) -4s")
+    
+    print format % {
+        'name': 'NAME',
+        'children': 'CHLD',
+        'cpu': 'CPU',
+        'mem': 'MEM',
+        'ReqPerSec': "R/s",
+        'Working': "WK",
+        'Idle': "IL",
+        'Open': "OP",
+    }
 
     stats = [a.stats() for a in apaches]
     stats.sort(cmp=lambda a,b: cmp(a.get(sort), b.get(sort)))
     
     for stat in stats:
-        print ("%(name) -32s"
-               "%(children) -6d"
-               "%(cpu) -6.2f"
-               "%(mem) -6.2f"
-               "%(ReqPerSec) -6.2f"
-               "%(Working) -4d"
-               "%(Idle) -4d"
-               "%(Open) -4d") % stat
+        print format % defaultdict(lambda: 'off', stat)
 
 
 def all_apaches():

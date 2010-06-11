@@ -5,17 +5,22 @@ from . import apache
 
 
 commands = {}
-def command(f):
-    parser = OptionParser()
-    for o in getattr(f, 'options', []):
-        parser.add_option(o)
+def command(options=None):
+    if not options:
+        options = []
+    def wrapper(f):
+        parser = OptionParser()
+        for o in options:
+            parser.add_option(o)
 
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        opts, args = parser.parse_args(args=list(args))
-        return f(opts, *args)
+        @wraps(f)
+        def inner_wrapper(*args, **kwargs):
+            opts, args = parser.parse_args(args=list(args))
+            return f(opts, *args)
 
-    commands[f.__name__] = wrapper
+        commands[f.__name__] = inner_wrapper
+        return inner_wrapper
+
     return wrapper
     
 
@@ -23,3 +28,7 @@ def command(f):
 def restart(opts, *args):
     for a in apache.all_apaches():
         a.restart()
+
+@command([make_option("-s", "--sort", default='name')])
+def report(opts, *args):
+    apache.print_report(apache.all_apaches(), sort=opts.sort)
